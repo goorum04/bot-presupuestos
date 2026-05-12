@@ -29,6 +29,23 @@ function freshnessLabel(dateStr: string | null): { text: string; warn: boolean }
   return { text: d.toLocaleDateString("fr-FR", { month: "short", year: "numeric" }), warn: true };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapProductToSuggestion(p: any): SuggestedProduct {
+  return {
+    product_id: p.id,
+    product_name: p.name,
+    reference: p.reference ?? null,
+    unit: p.unit,
+    unit_price_ht: parseFloat(p.unit_price_ht ?? "0"),
+    price_updated_at: p.price_updated_at ?? null,
+    category_name: p.material_categories?.name ?? null,
+    supplier_id: p.supplier_id,
+    supplier_name: p.suppliers?.name ?? "—",
+    invoice_count: 0,
+    relevance_score: 0,
+  };
+}
+
 export function ProductSuggestInput({
   value,
   itemType,
@@ -43,18 +60,14 @@ export function ProductSuggestInput({
   const [activeIdx, setActiveIdx] = useState(-1);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isCatalogType = SUGGEST_TYPES.includes(itemType);
 
-  const fetchSuggestions = useCallback(
+  const fetchByQuery = useCallback(
     async (q: string) => {
-      if (q.length < 2) {
-        setSuggestions([]);
-        setOpen(false);
-        return;
-      }
       setLoading(true);
       try {
         const res = await fetch(
-          `/api/catalogue/suggest?q=${encodeURIComponent(q)}&type=${itemType}&limit=3`
+          `/api/catalogue/suggest?q=${encodeURIComponent(q)}&type=${itemType}&limit=5`
         );
         if (!res.ok) return;
         const json = await res.json();
@@ -63,7 +76,7 @@ export function ProductSuggestInput({
         setOpen(results.length > 0);
         setActiveIdx(-1);
       } catch {
-        // silent — suggestion is best-effort
+        // best-effort
       } finally {
         setLoading(false);
       }
@@ -71,11 +84,45 @@ export function ProductSuggestInput({
     [itemType]
   );
 
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/catalogue/products?page_size=8`);
+      if (!res.ok) return;
+      const json = await res.json();
+      const results: SuggestedProduct[] = (json.data ?? []).map(mapProductToSuggestion);
+      setSuggestions(results);
+      setOpen(results.length > 0);
+      setActiveIdx(-1);
+    } catch {
+      // best-effort
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   function handleChange(v: string) {
     onChange(v);
-    if (!SUGGEST_TYPES.includes(itemType)) return;
+    if (!isCatalogType) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => fetchSuggestions(v), 400);
+    if (v.trim().length === 0) {
+      debounceRef.current = setTimeout(() => fetchAll(), 200);
+    } else if (v.trim().length >= 1) {
+      debounceRef.current = setTimeout(() => fetchByQuery(v), 350);
+    }
+  }
+
+  function handleFocus() {
+    if (!isCatalogType) return;
+    if (suggestions.length > 0) {
+      setOpen(true);
+      return;
+    }
+    if (value.trim().length === 0) {
+      fetchAll();
+    } else if (value.trim().length >= 1) {
+      fetchByQuery(value);
+    }
   }
 
   function handleSelect(p: SuggestedProduct) {
@@ -100,7 +147,6 @@ export function ProductSuggestInput({
     }
   }
 
-  // Close on outside click
   useEffect(() => {
     function onClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -113,24 +159,38 @@ export function ProductSuggestInput({
 
   return (
     <div ref={containerRef} className="relative w-full">
-      <div className="relative">
+      <div className="relative flex items-center gap-1">
         <input
           className={`w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 ${className}`}
           value={value}
           onChange={(e) => handleChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => suggestions.length > 0 && setOpen(true)}
-          placeholder={placeholder}
+          onFocus={handleFocus}
+          placeholder={isCatalogType ? "Cliquez ou tapez pour chercher dans le catalogue…" : placeholder}
         />
         {loading && (
           <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 size-3.5 text-gray-400 animate-spin" />
+        )}
+        {isCatalogType && !loading && (
+          <button
+            type="button"
+            title="Parcourir le catalogue"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              if (open) { setOpen(false); return; }
+              fetchAll();
+            }}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-amber-500 hover:text-amber-600"
+          >
+            <Package className="size-3.5" />
+          </button>
         )}
       </div>
 
       {open && suggestions.length > 0 && (
         <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
           <p className="px-2.5 py-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100 flex items-center gap-1">
-            <Package className="size-3" /> Suggestions catalogue
+            <Package className="size-3" /> Catalogue — cliquez pour ajouter
           </p>
           {suggestions.map((p, i) => {
             const { text, warn } = freshnessLabel(p.price_updated_at);

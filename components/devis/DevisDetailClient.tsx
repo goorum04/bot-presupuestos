@@ -95,7 +95,7 @@ export function DevisDetailClient({ devis }: Props) {
   const addItem = () =>
     setItems((prev) => [
       ...prev,
-      { type: "forfait", description: "", quantity: 1, unit: "u", unit_price_ht: 0, tva_rate: WORK_TYPE_TVA[workType as WorkType] ?? 20 },
+      { type: "materiaux", description: "", quantity: 1, unit: "u", unit_price_ht: 0, tva_rate: WORK_TYPE_TVA[workType as WorkType] ?? 20 },
     ]);
 
   const removeItem = (idx: number) =>

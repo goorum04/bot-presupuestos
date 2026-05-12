@@ -19,7 +19,7 @@ interface LineItem {
 
 const UNITS = ["h", "j", "u", "m²", "m³", "ml", "kg", "t", "forfait"];
 const DEFAULT_ITEM: LineItem = {
-  type: "forfait",
+  type: "materiaux",
   description: "",
   quantity: 1,
   unit: "u",
