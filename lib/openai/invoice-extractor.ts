@@ -1,4 +1,4 @@
-import { getOpenAIClient } from "./client";
+import { getAnthropicClient } from "./client";
 import type { ExtractedInvoice } from "@/types";
 
 const SYSTEM_PROMPT = `Tu es un assistant spécialisé dans l'extraction de données de factures françaises.
@@ -31,19 +31,34 @@ Règles:
 export async function extractInvoiceData(
   imageUrl: string
 ): Promise<ExtractedInvoice> {
-  const client = getOpenAIClient();
+  const client = getAnthropicClient();
 
-  const response = await client.chat.completions.create({
-    model: "gpt-4o",
+  // Fetch the image and convert to base64 for Claude
+  const imageResponse = await fetch(imageUrl);
+  if (!imageResponse.ok) {
+    throw new Error(`Failed to fetch image: ${imageResponse.status}`);
+  }
+  const contentType = imageResponse.headers.get("content-type") ?? "image/jpeg";
+  const arrayBuffer = await imageResponse.arrayBuffer();
+  const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+  const validMediaTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"] as const;
+  type MediaType = typeof validMediaTypes[number];
+  const mediaType: MediaType = validMediaTypes.includes(contentType as MediaType)
+    ? (contentType as MediaType)
+    : "image/jpeg";
+
+  const response = await client.messages.create({
+    model: "claude-sonnet-4-6",
     max_tokens: 1200,
+    system: SYSTEM_PROMPT,
     messages: [
-      { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
         content: [
           {
-            type: "image_url",
-            image_url: { url: imageUrl, detail: "high" },
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: base64 },
           },
           {
             type: "text",
@@ -52,15 +67,16 @@ export async function extractInvoiceData(
         ],
       },
     ],
-    response_format: { type: "json_object" },
   });
 
-  const raw = response.choices[0].message.content;
-  if (!raw) throw new Error("GPT-4o returned empty response");
+  const raw = response.content[0].type === "text" ? response.content[0].text : null;
+  if (!raw) throw new Error("Claude returned empty response");
 
-  const parsed = JSON.parse(raw) as ExtractedInvoice;
+  // Strip any accidental markdown code blocks
+  const jsonStr = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+  const parsed = JSON.parse(jsonStr) as ExtractedInvoice;
 
-  // Normalize SIRET: strip spaces
+  // Normalize SIRET
   if (parsed.supplier_siret) {
     parsed.supplier_siret = parsed.supplier_siret.replace(/\s/g, "");
     if (parsed.supplier_siret.length !== 14) {
@@ -68,7 +84,7 @@ export async function extractInvoiceData(
     }
   }
 
-  // Cross-check: HT + TVA ≈ TTC
+  // Cross-check HT + TVA ≈ TTC
   if (parsed.amount_ht && parsed.tva_amount && parsed.amount_ttc) {
     const computed = parsed.amount_ht + parsed.tva_amount;
     if (Math.abs(computed - parsed.amount_ttc) > 0.05) {
@@ -81,10 +97,7 @@ export async function extractInvoiceData(
     }
   }
 
-  // Ensure confidence is in [0,1]
-  if (typeof parsed.confidence !== "number") {
-    parsed.confidence = 0.5;
-  }
+  if (typeof parsed.confidence !== "number") parsed.confidence = 0.5;
   parsed.confidence = Math.max(0, Math.min(1, parsed.confidence));
 
   return parsed;
