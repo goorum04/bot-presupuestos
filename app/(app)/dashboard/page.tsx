@@ -1,14 +1,23 @@
 import Link from "next/link";
 import {
   Building2, FileText, Wallet, Plus, AlertTriangle,
-  TrendingUp, CheckCircle2, Clock,
+  TrendingUp, Clock, ClipboardList,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BudgetChart } from "@/components/dashboard/BudgetChart";
 import { ExpenseTimeline } from "@/components/dashboard/ExpenseTimeline";
 import { formatEUR, formatDate } from "@/lib/utils";
-import type { Alert } from "@/types";
+import type { Alert, DevisStatus } from "@/types";
+import { DEVIS_STATUS_LABELS } from "@/types";
+
+const DEVIS_BADGE: Record<DevisStatus, string> = {
+  brouillon: "bg-gray-100 text-gray-600",
+  envoye:    "bg-blue-100 text-blue-700",
+  accepte:   "bg-green-100 text-green-700",
+  refuse:    "bg-red-100 text-red-700",
+  expire:    "bg-orange-100 text-orange-600",
+};
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -42,6 +51,7 @@ export default async function DashboardPage() {
     { data: alerts },
     { data: categories },
     { data: pendingInvoices },
+    { data: recentDevis },
   ] = await Promise.all([
     supabase.from("projects").select("id, name, total_budget, status, client_name").eq("status", "active"),
     supabase.from("invoices").select("amount_ht, is_validated, created_at, invoice_date, category_id, project_id"),
@@ -52,6 +62,10 @@ export default async function DashboardPage() {
       .eq("is_validated", false)
       .order("created_at", { ascending: false })
       .limit(6),
+    supabase.from("devis")
+      .select("id, number, title, client_name, status, total_ttc, created_at")
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   // ── KPIs ──
@@ -243,6 +257,43 @@ export default async function DashboardPage() {
               <Plus className="size-4" /> Créer un chantier
             </Link>
           )}
+        </div>
+      )}
+
+      {/* Recent devis — admin only */}
+      {isAdmin && (recentDevis ?? []).length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-gray-900">Derniers devis</h2>
+            <Link href="/devis" className="text-xs font-medium text-amber-600 hover:text-amber-700">Voir tout →</Link>
+          </div>
+          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+            {(recentDevis ?? []).map((d) => (
+              <Link
+                key={d.id}
+                href={`/devis/${d.id}`}
+                className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-50 shrink-0">
+                  <ClipboardList className="size-4 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-gray-400">{d.number}</span>
+                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[10px] font-semibold ${DEVIS_BADGE[d.status as DevisStatus]}`}>
+                      {DEVIS_STATUS_LABELS[d.status as DevisStatus]}
+                    </span>
+                  </div>
+                  <p className="text-sm font-medium text-gray-900 truncate">{d.title}</p>
+                  <p className="text-xs text-gray-400 truncate">{d.client_name}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-gray-900">{formatEUR(d.total_ttc)}</p>
+                  <p className="text-xs text-gray-400">{formatDate(d.created_at)}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
