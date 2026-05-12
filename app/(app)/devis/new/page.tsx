@@ -221,102 +221,188 @@ export default function DevisNewPage() {
             </button>
           </div>
 
-          {/* Desktop table header */}
-          <div className="hidden md:grid grid-cols-[1fr_3fr_80px_80px_100px_80px_100px_36px] gap-2 mb-2 px-1 text-xs font-medium text-gray-400 uppercase tracking-wide">
-            <span>Type</span>
-            <span>Description</span>
-            <span>Qté</span>
-            <span>Unité</span>
-            <span>PU HT (€)</span>
-            <span>TVA</span>
-            <span>Total HT</span>
-            <span />
+          {/* Desktop table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                  <th className="pb-2 text-left font-medium w-36">Type</th>
+                  <th className="pb-2 text-left font-medium">Description</th>
+                  <th className="pb-2 text-right font-medium w-16">Qté</th>
+                  <th className="pb-2 text-left font-medium w-16 pl-2">Unité</th>
+                  <th className="pb-2 text-right font-medium w-24">PU HT (€)</th>
+                  <th className="pb-2 text-right font-medium w-16">TVA</th>
+                  <th className="pb-2 text-right font-medium w-24">Total HT</th>
+                  <th className="pb-2 w-9" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {items.map((item, idx) => {
+                  const { line_ht } = computeLine(item);
+                  return (
+                    <tr key={idx}>
+                      <td className="py-1.5 pr-2">
+                        <select
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.type}
+                          onChange={(e) => updateItem(idx, { type: e.target.value as DevisItemType })}
+                        >
+                          {(Object.keys(DEVIS_ITEM_TYPE_LABELS) as DevisItemType[]).map((k) => (
+                            <option key={k} value={k}>{DEVIS_ITEM_TYPE_LABELS[k]}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <input
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.description}
+                          onChange={(e) => updateItem(idx, { description: e.target.value })}
+                          placeholder="Description de la prestation…"
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.001"
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.quantity}
+                          onChange={(e) => updateItem(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <select
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.unit}
+                          onChange={(e) => updateItem(idx, { unit: e.target.value })}
+                        >
+                          {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                        </select>
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.unit_price_ht}
+                          onChange={(e) => updateItem(idx, { unit_price_ht: parseFloat(e.target.value) || 0 })}
+                        />
+                      </td>
+                      <td className="py-1.5 pr-2">
+                        <select
+                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          value={item.tva_rate}
+                          onChange={(e) => updateItem(idx, { tva_rate: parseFloat(e.target.value) })}
+                        >
+                          {VALID_TVA_RATES.map((r) => (
+                            <option key={r} value={r}>{r}%</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-1.5 pr-2 text-right text-sm font-semibold text-gray-900 whitespace-nowrap">
+                        {line_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                      </td>
+                      <td className="py-1.5">
+                        <button
+                          onClick={() => removeItem(idx)}
+                          disabled={items.length === 1}
+                          className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 className="size-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
-          <div className="space-y-2">
+          {/* Mobile stacked cards */}
+          <div className="md:hidden space-y-3">
             {items.map((item, idx) => {
               const { line_ht } = computeLine(item);
               return (
-                <div
-                  key={idx}
-                  className="grid grid-cols-1 md:grid-cols-[1fr_3fr_80px_80px_100px_80px_100px_36px] gap-2 items-start"
-                >
-                  {/* Type */}
-                  <select
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    value={item.type}
-                    onChange={(e) => updateItem(idx, { type: e.target.value as DevisItemType })}
-                  >
-                    {(Object.keys(DEVIS_ITEM_TYPE_LABELS) as DevisItemType[]).map((k) => (
-                      <option key={k} value={k}>{DEVIS_ITEM_TYPE_LABELS[k]}</option>
-                    ))}
-                  </select>
-
-                  {/* Description */}
+                <div key={idx} className="rounded-lg border border-gray-200 p-3 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <select
+                      className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      value={item.type}
+                      onChange={(e) => updateItem(idx, { type: e.target.value as DevisItemType })}
+                    >
+                      {(Object.keys(DEVIS_ITEM_TYPE_LABELS) as DevisItemType[]).map((k) => (
+                        <option key={k} value={k}>{DEVIS_ITEM_TYPE_LABELS[k]}</option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={() => removeItem(idx)}
+                      disabled={items.length === 1}
+                      className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30"
+                    >
+                      <Trash2 className="size-4" />
+                    </button>
+                  </div>
                   <input
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                     value={item.description}
                     onChange={(e) => updateItem(idx, { description: e.target.value })}
                     placeholder="Description de la prestation…"
                   />
-
-                  {/* Qty */}
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    value={item.quantity}
-                    onChange={(e) => updateItem(idx, { quantity: parseFloat(e.target.value) || 0 })}
-                  />
-
-                  {/* Unit */}
-                  <select
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    value={item.unit}
-                    onChange={(e) => updateItem(idx, { unit: e.target.value })}
-                  >
-                    {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
-                  </select>
-
-                  {/* Unit price */}
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    value={item.unit_price_ht}
-                    onChange={(e) => updateItem(idx, { unit_price_ht: parseFloat(e.target.value) || 0 })}
-                  />
-
-                  {/* TVA */}
-                  <select
-                    className="rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    value={item.tva_rate}
-                    onChange={(e) => updateItem(idx, { tva_rate: parseFloat(e.target.value) })}
-                  >
-                    {VALID_TVA_RATES.map((r) => (
-                      <option key={r} value={r}>{r}%</option>
-                    ))}
-                  </select>
-
-                  {/* Line total */}
-                  <div className="flex items-center justify-end py-1.5 px-2 text-sm font-medium text-gray-900">
-                    {line_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                  <div className="grid grid-cols-4 gap-2">
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-0.5">Qté</p>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.001"
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(idx, { quantity: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-0.5">Unité</p>
+                      <select
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        value={item.unit}
+                        onChange={(e) => updateItem(idx, { unit: e.target.value })}
+                      >
+                        {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-0.5">PU HT (€)</p>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm text-right focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        value={item.unit_price_ht}
+                        onChange={(e) => updateItem(idx, { unit_price_ht: parseFloat(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-gray-400 mb-0.5">TVA</p>
+                      <select
+                        className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        value={item.tva_rate}
+                        onChange={(e) => updateItem(idx, { tva_rate: parseFloat(e.target.value) })}
+                      >
+                        {VALID_TVA_RATES.map((r) => (
+                          <option key={r} value={r}>{r}%</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-
-                  {/* Delete */}
-                  <button
-                    onClick={() => removeItem(idx)}
-                    disabled={items.length === 1}
-                    className="flex items-center justify-center w-9 h-9 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <Trash2 className="size-4" />
-                  </button>
+                  <div className="flex justify-end text-sm font-semibold text-gray-900">
+                    Total HT : {line_ht.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €
+                  </div>
                 </div>
               );
             })}
           </div>
+
         </section>
 
         {/* Totals */}
