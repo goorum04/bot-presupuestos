@@ -6,10 +6,11 @@ import Link from "next/link";
 import {
   ArrowLeft, Printer, Pencil, Save, X, Plus, Trash2, Download, Mail, Loader2, Building2,
 } from "lucide-react";
-import type { Devis, DevisItem, DevisStatus, DevisItemType, WorkType } from "@/types";
+import type { Devis, DevisItem, DevisStatus, DevisItemType, WorkType, SuggestedProduct } from "@/types";
 import { DEVIS_STATUS_LABELS, DEVIS_ITEM_TYPE_LABELS, VALID_TVA_RATES, WORK_TYPE_TVA } from "@/types";
 import { formatEUR } from "@/lib/utils";
 import { DevisStatusActions } from "./DevisStatusActions";
+import { ProductSuggestInput } from "@/components/catalogue/ProductSuggestInput";
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
@@ -500,10 +501,17 @@ export function DevisDetailClient({ devis }: Props) {
                           </select>
                         </td>
                         <td className="py-1.5 pr-2">
-                          <input
-                            className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                          <ProductSuggestInput
                             value={item.description}
-                            onChange={(e) => updateItem(idx, { description: e.target.value })}
+                            itemType={item.type}
+                            onChange={(v) => updateItem(idx, { description: v })}
+                            onSelect={(p: SuggestedProduct) =>
+                              updateItem(idx, {
+                                description: p.product_name,
+                                unit: p.unit,
+                                unit_price_ht: p.unit_price_ht,
+                              })
+                            }
                             placeholder="Description…"
                           />
                         </td>
@@ -586,10 +594,17 @@ export function DevisDetailClient({ devis }: Props) {
                         <Trash2 className="size-4" />
                       </button>
                     </div>
-                    <input
-                      className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    <ProductSuggestInput
                       value={item.description}
-                      onChange={(e) => updateItem(idx, { description: e.target.value })}
+                      itemType={item.type}
+                      onChange={(v) => updateItem(idx, { description: v })}
+                      onSelect={(p: SuggestedProduct) =>
+                        updateItem(idx, {
+                          description: p.product_name,
+                          unit: p.unit,
+                          unit_price_ht: p.unit_price_ht,
+                        })
+                      }
                       placeholder="Description…"
                     />
                     <div className="grid grid-cols-4 gap-2">

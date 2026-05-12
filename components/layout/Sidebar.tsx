@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Building2, FileText, Bell, Settings,
-  HardHat, LogOut, Receipt, ClipboardList,
+  HardHat, LogOut, Receipt, ClipboardList, Package2,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -16,6 +16,7 @@ const ALL_NAV_ITEMS = [
   { label: "Devis",      href: "/devis",       icon: ClipboardList,    roles: ["admin"] as string[],           badge: false },
   { label: "Factures",   href: "/invoices",    icon: FileText,         roles: ["admin", "worker"] as string[], badge: false },
   { label: "TVA",        href: "/tva",         icon: Receipt,          roles: ["admin"] as string[],           badge: false },
+  { label: "Catalogue",  href: "/catalogue",   icon: Package2,         roles: ["admin"] as string[],           badge: false },
   { label: "Alertes",    href: "/alerts",      icon: Bell,             roles: ["admin"] as string[],           badge: true  },
   { label: "Réglages",   href: "/settings",    icon: Settings,         roles: ["admin", "worker"] as string[], badge: false },
 ];

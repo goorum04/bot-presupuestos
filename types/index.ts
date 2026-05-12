@@ -279,3 +279,62 @@ export interface ExtractedInvoice {
   confidence: number;
   extraction_notes: string | null;
 }
+
+// ─── Catalogue ────────────────────────────────────────────────────────────────
+
+export interface MaterialCategory {
+  id: string;
+  slug: string;
+  name: string;
+  parent_id: string | null;
+  devis_type: DevisItemType | null;
+  created_at: string;
+}
+
+export interface CatalogProduct {
+  id: string;
+  supplier_id: string;
+  category_id: string | null;
+  reference: string | null;
+  name: string;
+  description: string | null;
+  unit: string;
+  unit_price_ht: number | null;
+  currency: string;
+  is_available: boolean;
+  source: "scrape" | "csv_import" | "manual";
+  price_updated_at: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  suppliers?: Pick<Supplier, "id" | "name">;
+  material_categories?: Pick<MaterialCategory, "id" | "name" | "slug">;
+}
+
+export interface ScrapeJob {
+  id: string;
+  supplier_id: string;
+  status: "pending" | "running" | "completed" | "failed" | "skipped";
+  source_type: "web" | "pdf" | "csv" | "manual";
+  source_url: string | null;
+  products_found: number;
+  products_updated: number;
+  error_message: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+}
+
+export interface SuggestedProduct {
+  product_id: string;
+  product_name: string;
+  reference: string | null;
+  unit: string;
+  unit_price_ht: number;
+  price_updated_at: string | null;
+  category_name: string | null;
+  supplier_id: string;
+  supplier_name: string;
+  invoice_count: number;
+  relevance_score: number;
+}

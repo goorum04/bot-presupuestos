@@ -4,8 +4,9 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
-import type { DevisItemType, WorkType } from "@/types";
+import type { DevisItemType, WorkType, SuggestedProduct } from "@/types";
 import { DEVIS_ITEM_TYPE_LABELS, VALID_TVA_RATES, WORK_TYPE_TVA } from "@/types";
+import { ProductSuggestInput } from "@/components/catalogue/ProductSuggestInput";
 
 interface LineItem {
   type: DevisItemType;
@@ -263,11 +264,17 @@ export default function DevisNewPage() {
                         </select>
                       </td>
                       <td className="py-1.5 pr-2">
-                        <input
-                          className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        <ProductSuggestInput
                           value={item.description}
-                          onChange={(e) => updateItem(idx, { description: e.target.value })}
-                          placeholder="Description de la prestation…"
+                          itemType={item.type}
+                          onChange={(v) => updateItem(idx, { description: v })}
+                          onSelect={(p: SuggestedProduct) =>
+                            updateItem(idx, {
+                              description: p.product_name,
+                              unit: p.unit,
+                              unit_price_ht: p.unit_price_ht,
+                            })
+                          }
                         />
                       </td>
                       <td className="py-1.5 pr-2">
@@ -353,11 +360,17 @@ export default function DevisNewPage() {
                       <Trash2 className="size-4" />
                     </button>
                   </div>
-                  <input
-                    className="w-full rounded-lg border border-gray-300 px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  <ProductSuggestInput
                     value={item.description}
-                    onChange={(e) => updateItem(idx, { description: e.target.value })}
-                    placeholder="Description de la prestation…"
+                    itemType={item.type}
+                    onChange={(v) => updateItem(idx, { description: v })}
+                    onSelect={(p: SuggestedProduct) =>
+                      updateItem(idx, {
+                        description: p.product_name,
+                        unit: p.unit,
+                        unit_price_ht: p.unit_price_ht,
+                      })
+                    }
                   />
                   <div className="grid grid-cols-4 gap-2">
                     <div>
