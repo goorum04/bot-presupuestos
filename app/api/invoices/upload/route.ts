@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { extractInvoiceData } from "@/lib/openai/invoice-extractor";
 import { evaluateAlerts } from "@/lib/services/alert.service";
+import { checkInvoiceCompliance } from "@/lib/services/compliance.service";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic"];
 const MAX_SIZE_BYTES = 8 * 1024 * 1024; // 8 MB
@@ -22,6 +23,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const projectId = formData.get("project_id") as string | null;
     const categoryId = formData.get("category_id") as string | null;
+    const workType = (formData.get("work_type") as string | null) || null;
 
     if (!file) {
       return NextResponse.json({ error: "Fichier manquant" }, { status: 400 });
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
         uploaded_by: user.id,
         image_path: storagePath,
         ocr_status: "processing",
+        work_type: workType,
       })
       .select()
       .single();
@@ -126,9 +129,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Update invoice with extracted data
+    // Update invoice with extracted data + compliance check
     const newStatus =
       extractedData.confidence >= 0.6 ? "completed" : "needs_review";
+
+    const partialInvoice = {
+      invoice_number: extractedData.invoice_number,
+      invoice_date: extractedData.invoice_date,
+      due_date: extractedData.due_date,
+      supplier_name: extractedData.supplier_name,
+      supplier_siret: extractedData.supplier_siret,
+      supplier_tva_num: extractedData.supplier_tva_number,
+      supplier_address: extractedData.supplier_address,
+      amount_ht: extractedData.amount_ht,
+      tva_rate: extractedData.tva_rate ?? (workType ? (
+        workType === "renovation_energetique" ? 5.5 :
+        workType === "neuf" ? 20 :
+        workType === "entretien" ? 10 :
+        workType === "renovation" ? 10 : 20
+      ) : null),
+      tva_amount: extractedData.tva_amount,
+      amount_ttc: extractedData.amount_ttc,
+      tva_breakdown: extractedData.tva_breakdown,
+    };
+    const complianceIssues = checkInvoiceCompliance(partialInvoice);
 
     const { data: updatedInvoice } = await supabase
       .from("invoices")
@@ -136,18 +160,8 @@ export async function POST(request: NextRequest) {
         ocr_status: newStatus,
         ocr_confidence: extractedData.confidence,
         ocr_raw_response: extractedData,
-        invoice_number: extractedData.invoice_number,
-        invoice_date: extractedData.invoice_date,
-        due_date: extractedData.due_date,
-        supplier_name: extractedData.supplier_name,
-        supplier_siret: extractedData.supplier_siret,
-        supplier_tva_num: extractedData.supplier_tva_number,
-        supplier_address: extractedData.supplier_address,
-        amount_ht: extractedData.amount_ht,
-        tva_rate: extractedData.tva_rate,
-        tva_amount: extractedData.tva_amount,
-        amount_ttc: extractedData.amount_ttc,
-        tva_breakdown: extractedData.tva_breakdown,
+        ...partialInvoice,
+        compliance_issues: complianceIssues,
       })
       .eq("id", invoice.id)
       .select()

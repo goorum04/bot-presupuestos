@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { checkPaymentOverdue } from "@/lib/services/alert.service";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -57,4 +58,14 @@ export async function PATCH(request: NextRequest) {
   }
 
   return NextResponse.json({ success: true });
+}
+
+// POST /api/alerts?action=check_payments — trigger payment overdue check
+export async function POST(request: NextRequest) {
+  const supabase = await createServiceClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  await checkPaymentOverdue(supabase);
+  return NextResponse.json({ ok: true });
 }

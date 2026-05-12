@@ -166,3 +166,61 @@ export async function evaluateAlerts(
     await supabase.from("alerts").insert(pending);
   }
 }
+
+// Check all unpaid invoices for payment deadline violations (French law: max 30/45/60 days)
+export async function checkPaymentOverdue(supabase: SupabaseClient) {
+  const { data: invoices } = await supabase
+    .from("invoices")
+    .select("id, project_id, invoice_number, supplier_name, amount_ttc, invoice_date, due_date, payment_terms_days, payment_status")
+    .neq("payment_status", "paid")
+    .eq("is_validated", true)
+    .not("invoice_date", "is", null);
+
+  if (!invoices?.length) return;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const pending: AlertInsert[] = [];
+
+  for (const inv of invoices) {
+    let deadline: Date;
+    if (inv.due_date) {
+      deadline = new Date(inv.due_date);
+    } else {
+      deadline = new Date(inv.invoice_date);
+      deadline.setDate(deadline.getDate() + (inv.payment_terms_days ?? 30));
+    }
+
+    const daysLate = Math.floor((today.getTime() - deadline.getTime()) / (1000 * 86400));
+    if (daysLate <= 0) continue;
+
+    // Don't spam: one alert per invoice per week
+    const { data: existing } = await supabase
+      .from("alerts")
+      .select("id")
+      .eq("type", "payment_overdue")
+      .eq("invoice_id", inv.id)
+      .gte("created_at", new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString())
+      .limit(1);
+
+    if (existing?.length) continue;
+
+    const annualRate = 0.1447;
+    const interest = (inv.amount_ttc ?? 0) * annualRate * (daysLate / 365);
+    const penalties = Math.round((interest + 40) * 100) / 100;
+
+    pending.push({
+      project_id: inv.project_id,
+      invoice_id: inv.id,
+      type: "payment_overdue",
+      severity: daysLate > 30 ? "critical" : "warning",
+      title: `Facture impayée — ${daysLate} jour${daysLate > 1 ? "s" : ""} de retard`,
+      message: `Facture ${inv.invoice_number ?? "sans numéro"} de ${inv.supplier_name ?? "fournisseur inconnu"} (${formatEUR(inv.amount_ttc ?? 0)}) dépasse le délai légal. Pénalités applicables: ~${formatEUR(penalties)} (40€ forfait + intérêts).`,
+      metadata: { days_late: daysLate, deadline: deadline.toISOString(), penalties_estimate: penalties },
+    });
+  }
+
+  if (pending.length > 0) {
+    await supabase.from("alerts").insert(pending);
+  }
+}

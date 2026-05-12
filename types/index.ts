@@ -110,6 +110,9 @@ export interface Invoice {
   notes: string | null;
   payment_status: PaymentStatus;
   payment_date: string | null;
+  work_type: WorkType | null;
+  payment_terms_days: number;
+  compliance_issues: ComplianceIssue[] | null;
   created_at: string;
   updated_at: string;
   // Relations
@@ -118,12 +121,47 @@ export interface Invoice {
   profiles?: Pick<Profile, "id" | "full_name">;
 }
 
+// ─── French compliance ────────────────────────────────────────────────────────
+
+export type WorkType =
+  | "neuf"
+  | "renovation"
+  | "renovation_energetique"
+  | "entretien"
+  | "autre";
+
+export const WORK_TYPE_LABELS: Record<WorkType, string> = {
+  neuf: "Construction neuve",
+  renovation: "Rénovation",
+  renovation_energetique: "Rénovation énergétique",
+  entretien: "Entretien / Réparation",
+  autre: "Autre",
+};
+
+// TVA rates by work type (French law)
+export const WORK_TYPE_TVA: Record<WorkType, number> = {
+  neuf: 20,
+  renovation: 10,
+  renovation_energetique: 5.5,
+  entretien: 10,
+  autre: 20,
+};
+
+export const VALID_TVA_RATES = [0, 2.1, 5.5, 10, 20] as const;
+
+export interface ComplianceIssue {
+  code: string;
+  message: string;
+  severity: "error" | "warning";
+}
+
 export type AlertType =
   | "budget_threshold"
   | "budget_exceeded"
   | "unusual_amount"
   | "duplicate_invoice"
-  | "ocr_failed";
+  | "ocr_failed"
+  | "payment_overdue";
 
 export type AlertSeverity = "info" | "warning" | "critical";
 

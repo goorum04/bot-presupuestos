@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import { formatEUR, formatDate } from "@/lib/utils";
-import { CATEGORY_LABELS } from "@/types";
-import type { Project, BudgetCategory, ExtractedInvoice } from "@/types";
+import { CATEGORY_LABELS, WORK_TYPE_LABELS, WORK_TYPE_TVA } from "@/types";
+import type { Project, BudgetCategory, ExtractedInvoice, WorkType } from "@/types";
 
 type UploadState = "idle" | "uploading" | "processing" | "done" | "error";
 
@@ -28,6 +28,7 @@ export default function UploadInvoicePage() {
     searchParams.get("project_id") ?? ""
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [selectedWorkType, setSelectedWorkType] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>("idle");
@@ -94,6 +95,7 @@ export default function UploadInvoicePage() {
     formData.append("file", selectedFile);
     formData.append("project_id", selectedProjectId);
     if (selectedCategoryId) formData.append("category_id", selectedCategoryId);
+    if (selectedWorkType) formData.append("work_type", selectedWorkType);
 
     try {
       setUploadState("processing");
@@ -186,6 +188,28 @@ export default function UploadInvoicePage() {
               </Select>
             </div>
           )}
+
+          {/* Type de travaux → détermine le taux TVA automatiquement */}
+          <div className="space-y-2">
+            <Label>Type de travaux</Label>
+            <Select value={selectedWorkType} onValueChange={(v) => setSelectedWorkType(v ?? "")}>
+              <SelectTrigger>
+                <SelectValue placeholder="Sélectionner le type de travaux…" />
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.entries(WORK_TYPE_LABELS) as [WorkType, string][]).map(([k, label]) => (
+                  <SelectItem key={k} value={k}>
+                    {label} — TVA {WORK_TYPE_TVA[k]}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedWorkType && (
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5">
+                Taux TVA applicable : <strong>{WORK_TYPE_TVA[selectedWorkType as WorkType]}%</strong> (législation française BTP)
+              </p>
+            )}
+          </div>
         </CardContent>
       </Card>
 
