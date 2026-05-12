@@ -4,9 +4,8 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Trash2, ArrowLeft, Save } from "lucide-react";
 import Link from "next/link";
-import type { DevisItemType } from "@/types";
-import { DEVIS_ITEM_TYPE_LABELS } from "@/types";
-import { VALID_TVA_RATES } from "@/types";
+import type { DevisItemType, WorkType } from "@/types";
+import { DEVIS_ITEM_TYPE_LABELS, VALID_TVA_RATES, WORK_TYPE_TVA } from "@/types";
 
 interface LineItem {
   type: DevisItemType;
@@ -48,13 +47,23 @@ export default function DevisNewPage() {
     notes: "",
     work_type: "renovation" as string,
   });
-  const [items, setItems] = useState<LineItem[]>([{ ...DEFAULT_ITEM }]);
+  const [items, setItems] = useState<LineItem[]>([{ ...DEFAULT_ITEM, tva_rate: 10 }]);
 
   const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
-  const addItem = () => setItems((prev) => [...prev, { ...DEFAULT_ITEM }]);
+  function handleWorkTypeChange(newType: string) {
+    setForm((f) => ({ ...f, work_type: newType }));
+    const rate = WORK_TYPE_TVA[newType as WorkType] ?? 20;
+    setItems((prev) => prev.map((it) => ({ ...it, tva_rate: rate })));
+  }
+
+  const addItem = () =>
+    setItems((prev) => [
+      ...prev,
+      { ...DEFAULT_ITEM, tva_rate: WORK_TYPE_TVA[form.work_type as WorkType] ?? 20 },
+    ]);
   const removeItem = (idx: number) => setItems((prev) => prev.filter((_, i) => i !== idx));
 
   const totals = items.reduce(
@@ -73,8 +82,9 @@ export default function DevisNewPage() {
     setSaving(true);
     setError(null);
     try {
+      const { work_type: _, ...formData } = form;
       const payload = {
-        ...form,
+        ...formData,
         status,
         total_ht: Math.round(totals.ht * 100) / 100,
         total_tva: Math.round(totals.tva * 100) / 100,
@@ -187,7 +197,7 @@ export default function DevisNewPage() {
               <select
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
                 value={form.work_type}
-                onChange={(e) => setForm((f) => ({ ...f, work_type: e.target.value }))}
+                onChange={(e) => handleWorkTypeChange(e.target.value)}
               >
                 <option value="neuf">Construction neuve — TVA 20%</option>
                 <option value="renovation">Rénovation — TVA 10%</option>

@@ -4,11 +4,10 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Printer, FileText, Pencil, Save, X, Plus, Trash2,
+  ArrowLeft, Printer, Pencil, Save, X, Plus, Trash2, Download, Mail, Loader2,
 } from "lucide-react";
-import type { Devis, DevisItem, DevisStatus, DevisItemType } from "@/types";
-import { DEVIS_STATUS_LABELS, DEVIS_ITEM_TYPE_LABELS } from "@/types";
-import { VALID_TVA_RATES } from "@/types";
+import type { Devis, DevisItem, DevisStatus, DevisItemType, WorkType } from "@/types";
+import { DEVIS_STATUS_LABELS, DEVIS_ITEM_TYPE_LABELS, VALID_TVA_RATES, WORK_TYPE_TVA } from "@/types";
 import { formatEUR } from "@/lib/utils";
 import { DevisStatusActions } from "./DevisStatusActions";
 
@@ -74,18 +73,27 @@ export function DevisDetailClient({ devis }: Props) {
 
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState(initialForm);
+  const [workType, setWorkType] = useState("renovation");
   const [items, setItems] = useState<LineItem[]>(itemsToLineItems(sortedItems));
   const [saving, setSaving] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
   }, []);
 
+  function handleWorkTypeChange(newType: string) {
+    setWorkType(newType);
+    const rate = WORK_TYPE_TVA[newType as WorkType] ?? 20;
+    setItems((prev) => prev.map((it) => ({ ...it, tva_rate: rate })));
+  }
+
   const addItem = () =>
     setItems((prev) => [
       ...prev,
-      { type: "forfait", description: "", quantity: 1, unit: "u", unit_price_ht: 0, tva_rate: 10 },
+      { type: "forfait", description: "", quantity: 1, unit: "u", unit_price_ht: 0, tva_rate: WORK_TYPE_TVA[workType as WorkType] ?? 20 },
     ]);
 
   const removeItem = (idx: number) =>
@@ -98,6 +106,22 @@ export function DevisDetailClient({ devis }: Props) {
     },
     { ht: 0, tva: 0, ttc: 0 }
   );
+
+  async function handleSendEmail() {
+    setSendingEmail(true);
+    setEmailMsg(null);
+    try {
+      const res = await fetch(`/api/devis/${devis.id}/email`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Erreur envoi");
+      setEmailMsg({ ok: true, text: `Email envoyé à ${devis.client_email} ✓` });
+      router.refresh();
+    } catch (e) {
+      setEmailMsg({ ok: false, text: e instanceof Error ? e.message : "Erreur inconnue" });
+    } finally {
+      setSendingEmail(false);
+    }
+  }
 
   function handleCancel() {
     setForm(initialForm);
@@ -190,13 +214,30 @@ export function DevisDetailClient({ devis }: Props) {
               >
                 <Pencil className="size-4" /> Modifier
               </button>
+              <a
+                href={`/api/devis/${devis.id}/pdf`}
+                download={`${devis.number}.pdf`}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Download className="size-4" /> PDF
+              </a>
               <Link
                 href={`/devis/${devis.id}/print`}
                 target="_blank"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                className="hidden sm:inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
               >
                 <Printer className="size-4" /> Imprimer
               </Link>
+              {devis.client_email && (
+                <button
+                  onClick={handleSendEmail}
+                  disabled={sendingEmail}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 transition-colors disabled:opacity-50"
+                >
+                  {sendingEmail ? <Loader2 className="size-4 animate-spin" /> : <Mail className="size-4" />}
+                  {sendingEmail ? "Envoi…" : "Envoyer"}
+                </button>
+              )}
             </>
           )}
         </div>
@@ -206,6 +247,13 @@ export function DevisDetailClient({ devis }: Props) {
       {error && (
         <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {error}
+        </div>
+      )}
+
+      {/* Email feedback */}
+      {emailMsg && (
+        <div className={`mb-4 rounded-lg px-4 py-3 text-sm border ${emailMsg.ok ? "bg-green-50 border-green-200 text-green-700" : "bg-red-50 border-red-200 text-red-700"}`}>
+          {emailMsg.text}
         </div>
       )}
 
@@ -358,6 +406,22 @@ export function DevisDetailClient({ devis }: Props) {
                   value={form.valid_until}
                   onChange={(e) => setForm((f) => ({ ...f, valid_until: e.target.value }))}
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">
+                  Type de travaux <span className="text-amber-500 text-[10px] font-normal">(met à jour la TVA de toutes les lignes)</span>
+                </label>
+                <select
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  value={workType}
+                  onChange={(e) => handleWorkTypeChange(e.target.value)}
+                >
+                  <option value="neuf">Construction neuve — TVA 20%</option>
+                  <option value="renovation">Rénovation — TVA 10%</option>
+                  <option value="renovation_energetique">Rénovation énergétique — TVA 5,5%</option>
+                  <option value="entretien">Entretien / Réparation — TVA 10%</option>
+                  <option value="autre">Autre — TVA 20%</option>
+                </select>
               </div>
               <div className="md:col-span-2">
                 <label className="block text-xs font-medium text-gray-600 mb-1">Description générale</label>
