@@ -162,7 +162,7 @@ export default function NewProjectPage() {
   };
 
   return (
-    <div className="p-8 max-w-2xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-2xl mx-auto space-y-6 md:space-y-8">
       {/* Header */}
       <div className="space-y-1">
         <Link

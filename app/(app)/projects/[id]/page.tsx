@@ -168,7 +168,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
   const allocatedTotal = categories.reduce((sum, c) => sum + c.budget_amount, 0);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6 md:space-y-8">
       {/* Back link */}
       <Link
         href="/projects"

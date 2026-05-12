@@ -32,7 +32,7 @@ export default async function AlertsPage() {
   const unread = (alerts ?? []).filter((a: Alert) => !a.is_read).length;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">

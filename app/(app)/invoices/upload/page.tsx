@@ -194,7 +194,7 @@ export default function UploadInvoicePage() {
         <div
           onDrop={handleDrop}
           onDragOver={(e) => e.preventDefault()}
-          className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors mb-4"
+          className="border-2 border-dashed border-muted-foreground/30 rounded-xl p-5 md:p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors mb-4"
           onClick={() => fileInputRef.current?.click()}
         >
           <Upload className="mx-auto mb-3 text-muted-foreground" size={40} />

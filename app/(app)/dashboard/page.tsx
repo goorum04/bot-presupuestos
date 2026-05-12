@@ -130,21 +130,21 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <div className="p-8 max-w-6xl mx-auto space-y-8">
+    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 md:space-y-8">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Tableau de bord</h1>
           <p className="text-gray-500 mt-1 text-sm">
             Bonjour, <span className="font-medium text-gray-700">{displayName}</span>. Vue d&apos;ensemble des chantiers actifs.
           </p>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <Link href="/invoices/upload" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50">
-            <Plus className="size-4" /> Facture
+        <div className="flex items-center gap-2 shrink-0">
+          <Link href="/invoices/upload" className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-2.5 py-1.5 text-xs md:text-sm font-medium text-gray-700 shadow-sm transition-colors hover:bg-gray-50">
+            <Plus className="size-3.5 md:size-4" /> <span className="hidden sm:inline">Facture</span><span className="sm:hidden">+Fact.</span>
           </Link>
-          <Link href="/projects/new" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600">
-            <Plus className="size-4" /> Chantier
+          <Link href="/projects/new" className="inline-flex items-center gap-1.5 rounded-lg bg-amber-500 px-2.5 py-1.5 text-xs md:text-sm font-medium text-white shadow-sm transition-colors hover:bg-amber-600">
+            <Plus className="size-3.5 md:size-4" /> <span className="hidden sm:inline">Chantier</span><span className="sm:hidden">+Chant.</span>
           </Link>
         </div>
       </div>
