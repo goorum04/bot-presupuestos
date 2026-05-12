@@ -196,6 +196,73 @@ export interface BudgetSummary {
   pct_used: number;
 }
 
+export type DevisStatus = "brouillon" | "envoye" | "accepte" | "refuse" | "expire";
+
+export const DEVIS_STATUS_LABELS: Record<DevisStatus, string> = {
+  brouillon: "Brouillon",
+  envoye: "Envoyé",
+  accepte: "Accepté",
+  refuse: "Refusé",
+  expire: "Expiré",
+};
+
+export const DEVIS_STATUS_COLORS: Record<DevisStatus, string> = {
+  brouillon: "gray",
+  envoye: "blue",
+  accepte: "green",
+  refuse: "red",
+  expire: "orange",
+};
+
+export type DevisItemType = "main_oeuvre" | "materiaux" | "sous_traitance" | "materiel" | "forfait";
+
+export const DEVIS_ITEM_TYPE_LABELS: Record<DevisItemType, string> = {
+  main_oeuvre: "Main-d'œuvre",
+  materiaux: "Matériaux",
+  sous_traitance: "Sous-traitance",
+  materiel: "Matériel",
+  forfait: "Forfait",
+};
+
+export interface DevisItem {
+  id: string;
+  devis_id: string;
+  position: number;
+  type: DevisItemType;
+  description: string;
+  quantity: number;
+  unit: string;
+  unit_price_ht: number;
+  tva_rate: number;
+  line_ht: number;
+  line_tva: number;
+  line_ttc: number;
+  created_at: string;
+}
+
+export interface Devis {
+  id: string;
+  number: string;
+  project_id: string | null;
+  client_name: string;
+  client_address: string | null;
+  client_email: string | null;
+  title: string;
+  description: string | null;
+  valid_until: string | null;
+  status: DevisStatus;
+  notes: string | null;
+  total_ht: number;
+  total_tva: number;
+  total_ttc: number;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relations
+  devis_items?: DevisItem[];
+  projects?: Pick<Project, "id" | "name">;
+}
+
 export interface ExtractedInvoice {
   invoice_number: string | null;
   invoice_date: string | null;

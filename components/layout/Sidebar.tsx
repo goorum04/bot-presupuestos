@@ -12,6 +12,7 @@ import {
   HardHat,
   LogOut,
   Receipt,
+  ClipboardList,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Chantiers", href: "/projects", icon: Building2 },
+  { label: "Devis", href: "/devis", icon: ClipboardList },
   { label: "Factures", href: "/invoices", icon: FileText },
   { label: "TVA", href: "/tva", icon: Receipt },
   { label: "Alertes", href: "/alerts", icon: Bell, badge: true },
