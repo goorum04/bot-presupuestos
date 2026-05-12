@@ -21,8 +21,14 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   const devis = data as Devis & { devis_items: DevisItem[] };
   const items = [...devis.devis_items].sort((a, b) => a.position - b.position);
 
+  const { data: company } = await supabase
+    .from("company_settings")
+    .select("*")
+    .eq("id", "default")
+    .single();
+
   const buffer: Buffer = await renderToBuffer(
-    createElement(DevisPDFDocument, { devis, items })
+    createElement(DevisPDFDocument, { devis, items, company: company ?? undefined })
   );
 
   return new Response(new Uint8Array(buffer), {

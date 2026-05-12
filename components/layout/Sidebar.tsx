@@ -1,39 +1,37 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
-  Building2,
-  FileText,
-  Bell,
-  Settings,
-  HardHat,
-  LogOut,
-  Receipt,
-  ClipboardList,
+  LayoutDashboard, Building2, FileText, Bell, Settings,
+  HardHat, LogOut, Receipt, ClipboardList,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Chantiers", href: "/projects", icon: Building2 },
-  { label: "Devis", href: "/devis", icon: ClipboardList },
-  { label: "Factures", href: "/invoices", icon: FileText },
-  { label: "TVA", href: "/tva", icon: Receipt },
-  { label: "Alertes", href: "/alerts", icon: Bell, badge: true },
-  { label: "Réglages", href: "/settings", icon: Settings },
+const ALL_NAV_ITEMS = [
+  { label: "Dashboard",  href: "/dashboard",  icon: LayoutDashboard,  roles: ["admin", "worker"] as string[], badge: false },
+  { label: "Chantiers",  href: "/projects",   icon: Building2,        roles: ["admin", "worker"] as string[], badge: false },
+  { label: "Devis",      href: "/devis",       icon: ClipboardList,    roles: ["admin"] as string[],           badge: false },
+  { label: "Factures",   href: "/invoices",    icon: FileText,         roles: ["admin", "worker"] as string[], badge: false },
+  { label: "TVA",        href: "/tva",         icon: Receipt,          roles: ["admin"] as string[],           badge: false },
+  { label: "Alertes",    href: "/alerts",      icon: Bell,             roles: ["admin"] as string[],           badge: true  },
+  { label: "Réglages",   href: "/settings",    icon: Settings,         roles: ["admin", "worker"] as string[], badge: false },
 ];
 
 interface SidebarProps {
   userEmail: string;
+  userRole: "admin" | "worker";
 }
 
-export function Sidebar({ userEmail }: SidebarProps) {
+export function Sidebar({ userEmail, userRole }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const navItems = ALL_NAV_ITEMS.filter((item) => item.roles.includes(userRole));
+  const displayName = userEmail.split("@")[0] ?? userEmail;
+  const isAdmin = userRole === "admin";
 
   async function handleLogout() {
     const supabase = createClient();
@@ -42,25 +40,19 @@ export function Sidebar({ userEmail }: SidebarProps) {
     router.refresh();
   }
 
-  const displayName = userEmail.split("@")[0] ?? userEmail;
-
   return (
     <>
-      {/* ── Desktop sidebar (always visible ≥ lg) ─────────────────────── */}
+      {/* ── Desktop sidebar ─────────────────────────────────────────────── */}
       <aside className="hidden lg:flex flex-col w-60 min-h-screen bg-gray-900 text-white shrink-0">
-        {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-white/10">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 shrink-0">
             <HardHat className="size-4 text-white" />
           </div>
-          <span className="text-base font-bold tracking-tight truncate">
-            PresupuestoPro
-          </span>
+          <span className="text-base font-bold tracking-tight truncate">PresupuestoPro</span>
         </div>
 
-        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-0.5">
-          {NAV_ITEMS.map(({ label, href, icon: Icon, badge }) => {
+          {navItems.map(({ label, href, icon: Icon, badge }) => {
             const isActive = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
@@ -83,7 +75,6 @@ export function Sidebar({ userEmail }: SidebarProps) {
           })}
         </nav>
 
-        {/* User profile + logout */}
         <div className="px-3 pb-4 border-t border-white/10 pt-4 space-y-2">
           <div className="flex items-center gap-3 px-3 py-2">
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 shrink-0 text-xs font-bold text-gray-300 uppercase">
@@ -91,8 +82,11 @@ export function Sidebar({ userEmail }: SidebarProps) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{displayName}</p>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-400 leading-none mt-0.5">
-                Admin
+              <span className={cn(
+                "inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold leading-none mt-0.5",
+                isAdmin ? "bg-amber-500/20 text-amber-400" : "bg-gray-600/60 text-gray-300"
+              )}>
+                {isAdmin ? "Admin" : "Employé"}
               </span>
             </div>
           </div>
@@ -106,7 +100,7 @@ export function Sidebar({ userEmail }: SidebarProps) {
         </div>
       </aside>
 
-      {/* ── Mobile top bar (logo only) ────────────────────────────────── */}
+      {/* ── Mobile top bar ───────────────────────────────────────────────── */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between h-14 px-4 bg-gray-900 text-white shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 shrink-0">
@@ -114,23 +108,28 @@ export function Sidebar({ userEmail }: SidebarProps) {
           </div>
           <span className="text-sm font-bold tracking-tight">PresupuestoPro</span>
         </div>
-        {/* User initial badge */}
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-700 text-xs font-bold text-gray-300 uppercase">
           {displayName.slice(0, 2)}
         </div>
       </div>
 
-      {/* ── Mobile bottom navigation bar ─────────────────────────────── */}
-      <MobileBottomNav pathname={pathname} />
+      {/* ── Mobile bottom nav ────────────────────────────────────────────── */}
+      <MobileBottomNav pathname={pathname} navItems={navItems} />
     </>
   );
 }
 
-function MobileBottomNav({ pathname }: { pathname: string }) {
+function MobileBottomNav({
+  pathname,
+  navItems,
+}: {
+  pathname: string;
+  navItems: typeof ALL_NAV_ITEMS[number][];
+}) {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-[0_-1px_8px_rgba(0,0,0,0.06)]">
       <div className="flex items-stretch h-16">
-        {NAV_ITEMS.map(({ label, href, icon: Icon, badge }) => {
+        {navItems.map(({ label, href, icon: Icon, badge }) => {
           const isActive = pathname === href || pathname.startsWith(href + "/");
           return (
             <Link
@@ -154,7 +153,6 @@ function MobileBottomNav({ pathname }: { pathname: string }) {
           );
         })}
       </div>
-      {/* iPhone safe area spacer */}
       <div className="h-[env(safe-area-inset-bottom,0px)]" />
     </nav>
   );

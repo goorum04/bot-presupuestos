@@ -68,12 +68,26 @@ function eur(n: number) {
   return n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 }
 
+interface CompanySettings {
+  name?: string; siret?: string; tva_number?: string;
+  address?: string; postal_code?: string; city?: string;
+  phone?: string; email?: string;
+}
+
 interface Props {
   devis: Devis;
   items: DevisItem[];
+  company?: CompanySettings;
 }
 
-export function DevisPDFDocument({ devis, items }: Props) {
+export function DevisPDFDocument({ devis, items, company }: Props) {
+  const co = company ?? {};
+  const companyName = co.name ?? "Mon Entreprise BTP";
+  const companyAddress = [co.address, [co.postal_code, co.city].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  const companyPhone = co.phone;
+  const companyEmail = co.email;
+  const companySiret = co.siret ? `SIRET : ${co.siret}` : null;
+  const companyTva = co.tva_number ? `TVA : ${co.tva_number}` : null;
   const today = new Date().toLocaleDateString("fr-FR");
 
   const tvaBreakdown: Record<number, { ht: number; tva: number }> = {};
@@ -90,11 +104,12 @@ export function DevisPDFDocument({ devis, items }: Props) {
         {/* ── Header ── */}
         <View style={[s.row, { marginBottom: 20 }]}>
           <View>
-            <Text style={s.companyName}>PresupuestoPro BTP</Text>
-            <Text style={s.companyInfo}>Votre adresse professionnelle</Text>
-            <Text style={s.companyInfo}>Code postal, Ville</Text>
-            <Text style={s.companyInfo}>Tél : +33 X XX XX XX XX</Text>
-            <Text style={s.companyInfo}>SIRET : XX XXX XXX XXXXX</Text>
+            <Text style={s.companyName}>{companyName}</Text>
+            {companyAddress ? <Text style={s.companyInfo}>{companyAddress}</Text> : null}
+            {companyPhone ? <Text style={s.companyInfo}>Tél : {companyPhone}</Text> : null}
+            {companyEmail ? <Text style={s.companyInfo}>{companyEmail}</Text> : null}
+            {companySiret ? <Text style={s.companyInfo}>{companySiret}</Text> : null}
+            {companyTva ? <Text style={s.companyInfo}>{companyTva}</Text> : null}
           </View>
           <View>
             <Text style={s.devisTitle}>DEVIS</Text>
