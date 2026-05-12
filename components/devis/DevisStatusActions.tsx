@@ -8,9 +8,19 @@ import type { DevisStatus } from "@/types";
 interface Props {
   devisId: string;
   currentStatus: DevisStatus;
+  devisProjectId?: string | null;
+  devisTitle: string;
+  devisClientName: string;
+  devisClientAddress?: string | null;
+  devisTotalTtc: number;
+  onProjectCreated?: (projectId: string) => void;
 }
 
-export function DevisStatusActions({ devisId, currentStatus }: Props) {
+export function DevisStatusActions({
+  devisId, currentStatus,
+  devisProjectId, devisTitle, devisClientName, devisClientAddress, devisTotalTtc,
+  onProjectCreated,
+}: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +31,34 @@ export function DevisStatusActions({ devisId, currentStatus }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
     });
+
+    if (status === "accepte" && !devisProjectId) {
+      try {
+        const res = await fetch("/api/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: devisTitle,
+            client_name: devisClientName,
+            address: devisClientAddress ?? null,
+            total_budget: devisTotalTtc > 0 ? devisTotalTtc : 1,
+          }),
+        });
+        if (res.ok) {
+          const json = await res.json();
+          const projectId = json.id as string;
+          await fetch(`/api/devis/${devisId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ project_id: projectId }),
+          });
+          onProjectCreated?.(projectId);
+        }
+      } catch {
+        // project creation is best-effort; devis is already accepted
+      }
+    }
+
     router.refresh();
     setLoading(false);
   }

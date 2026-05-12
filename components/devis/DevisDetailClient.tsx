@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ArrowLeft, Printer, Pencil, Save, X, Plus, Trash2, Download, Mail, Loader2,
+  ArrowLeft, Printer, Pencil, Save, X, Plus, Trash2, Download, Mail, Loader2, Building2,
 } from "lucide-react";
 import type { Devis, DevisItem, DevisStatus, DevisItemType, WorkType } from "@/types";
 import { DEVIS_STATUS_LABELS, DEVIS_ITEM_TYPE_LABELS, VALID_TVA_RATES, WORK_TYPE_TVA } from "@/types";
@@ -79,6 +79,7 @@ export function DevisDetailClient({ devis }: Props) {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [emailMsg, setEmailMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null);
 
   const updateItem = useCallback((idx: number, patch: Partial<LineItem>) => {
     setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
@@ -257,8 +258,28 @@ export function DevisDetailClient({ devis }: Props) {
         </div>
       )}
 
+      {/* New project banner */}
+      {createdProjectId && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 flex items-center gap-3">
+          <Building2 className="size-4 shrink-0 text-green-600" />
+          <span className="flex-1">Chantier créé automatiquement à partir de ce devis.</span>
+          <Link href={`/projects/${createdProjectId}`} className="font-semibold underline hover:text-green-900 shrink-0">
+            Voir le chantier →
+          </Link>
+        </div>
+      )}
+
       {/* Status actions (always visible) */}
-      <DevisStatusActions devisId={devis.id} currentStatus={devis.status} />
+      <DevisStatusActions
+        devisId={devis.id}
+        currentStatus={devis.status}
+        devisProjectId={devis.project_id}
+        devisTitle={devis.title}
+        devisClientName={devis.client_name}
+        devisClientAddress={devis.client_address}
+        devisTotalTtc={devis.total_ttc}
+        onProjectCreated={setCreatedProjectId}
+      />
 
       {/* ── VIEW MODE ──────────────────────────────────────────────────────── */}
       {!isEditing && (
